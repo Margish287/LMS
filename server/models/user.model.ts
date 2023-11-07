@@ -1,7 +1,6 @@
 import mongoose, { Document, Schema, Model, Mongoose } from "mongoose";
 import bcrypt from "bcryptjs";
 import { NextFunction } from "express";
-import { x } from "joi";
 
 const emailRegex: RegExp = /^([\w-\.]+@([\w-]+\.)+[\w-]{2,5})?$/;
 
@@ -13,7 +12,7 @@ export interface IUser extends Document {
   role: string;
   isVerified: boolean;
   courses: Array<{ courseId: string }>;
-  comparePassword: (password: string) => Promise<boolean>;
+  comparePassword: (password: string) => Promise<boolean>; // Promise which must return a boolean value after it resolves can be written as Promise<Boolean>
 }
 
 const userSchema: Schema<IUser> = new mongoose.Schema(
