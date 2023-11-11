@@ -7,6 +7,7 @@ import jwt, { Secret } from 'jsonwebtoken';
 import ejs from 'ejs';
 import path from 'path';
 import { sendMail } from '../utils/sendMail';
+import { sendToken } from '../utils/jwt';
 
 interface UserRegistrationBody {
   name: string;
@@ -125,6 +126,54 @@ export const activateUser = catchAsyncError(
         success: true,
         message: 'User Activated Successfully',
       });
-    } catch (error) {}
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 400));
+    }
+  }
+);
+
+// User Login
+interface UserLogin {
+  email: string;
+  password: string;
+}
+
+export const userLogin = catchAsyncError(
+  async (request: Request, response: Response, next: NextFunction) => {
+    try {
+      const { email, password } = request.body as UserLogin;
+      if (!email || !password) {
+        return next(new ErrorHandler('Please enter Email and Password !', 400));
+      }
+
+      const user = await userModel.findOne({ email }).select('+password');
+      if (!user) {
+        return next(new ErrorHandler('User is not Exist !', 400));
+      }
+
+      const isValidPassword = await user.comparePassword(password);
+      if (!isValidPassword) {
+        return next(new ErrorHandler('Please enter correct Password !', 400));
+      }
+
+      sendToken(user, 200, response);
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 400));
+    }
+  }
+);
+
+export const userLogout = catchAsyncError(
+  async (request: Request, response: Response, next: NextFunction) => {
+    try {
+      response.cookie('access_token', '', { maxAge: 1 });
+      response.cookie('refresh_token', '', { maxAge: 1 });
+      response.status(200).json({
+        success: true,
+        message: 'Logged out successfully',
+      });
+    } catch (error: any) {
+      next(new ErrorHandler(error.message, 400));
+    }
   }
 );
