@@ -126,6 +126,45 @@ export const socialAuth = catchAsyncError(
   }
 );
 
+interface UpdateUserInfo {
+  email: string;
+  name: string;
+}
+
+export const updateUserInfo = catchAsyncError(
+  async (request: Request, response: Response, next: NextFunction) => {
+    try {
+      const { name, email } = request.body as UpdateUserInfo;
+      const userId = request.user?._id;
+      const user = await userModel.findById(userId);
+
+      if (user && email) {
+        const isEmailExist = await userModel.findOne({ email });
+        if (isEmailExist) {
+          return next(new ErrorHandler('Email already exist.', 400));
+        }
+
+        user.email = email;
+      }
+
+      if (user && name) {
+        user.name = name;
+      }
+
+      await user?.save();
+      await redis.set(userId, JSON.stringify(user));
+
+      response.status(201).json({
+        success: true,
+        message: 'Updated successfully',
+        user,
+      });
+    } catch (error: any) {
+      next(new ErrorHandler(error.message, 400));
+    }
+  }
+);
+
 // export const  = catchAsyncError(
 //   async (request: Request, response: Response, next: NextFunction) => {
 //     try {

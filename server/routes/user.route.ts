@@ -11,6 +11,7 @@ import {
   isAuthenticated,
   socialAuth,
   updateAccessToken,
+  updateUserInfo,
 } from '../middleware/auth';
 const userRouter = express.Router();
 
@@ -22,5 +23,6 @@ userRouter.get('/logout', isAuthenticated, userLogout);
 userRouter.get('/refresh-token', updateAccessToken);
 userRouter.get('/me', isAuthenticated, getUserInfo);
 userRouter.post('/social-auth', socialAuth);
+userRouter.post('/update-profile', isAuthenticated, updateUserInfo);
 
 export default userRouter;
