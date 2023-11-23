@@ -165,6 +165,49 @@ export const updateUserInfo = catchAsyncError(
   }
 );
 
+interface UpdateUserPassword {
+  oldPassword: string;
+  newPassword: string;
+}
+
+export const updateUserPassword = catchAsyncError(
+  async (request: Request, response: Response, next: NextFunction) => {
+    try {
+      const { oldPassword, newPassword } = request.body as UpdateUserPassword;
+      if (!oldPassword || !newPassword) {
+        return next(new ErrorHandler('Please enter old/new password', 400));
+      }
+
+      const user = await userModel
+        .findById(request.user?._id)
+        .select('+password');
+      // console.log(user);
+
+      if (user?.password === undefined) {
+        // NOTE: if user is log in from the social-auth then they dont have to password
+        return next(new ErrorHandler('Invalid user', 400));
+      }
+
+      const isPasswordCorrect = await user.comparePassword(oldPassword);
+      if (!isPasswordCorrect) {
+        return next(new ErrorHandler('Invalid password.', 400));
+      }
+
+      user.password = newPassword;
+
+      await user.save(); // update user to database
+      await redis.set(request.user?._id, JSON.stringify(user)); // update the user to redis
+
+      response.status(201).json({
+        success: true,
+        user,
+      });
+    } catch (error: any) {
+      next(new ErrorHandler(error.message, 400));
+    }
+  }
+);
+
 // export const  = catchAsyncError(
 //   async (request: Request, response: Response, next: NextFunction) => {
 //     try {
