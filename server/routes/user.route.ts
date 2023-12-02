@@ -13,6 +13,7 @@ import {
   updateAccessToken,
   updateUserInfo,
   updateUserPassword,
+  updateUserProfilePic,
 } from '../middleware/auth';
 const userRouter = express.Router();
 
@@ -26,5 +27,6 @@ userRouter.get('/me', isAuthenticated, getUserInfo);
 userRouter.post('/social-auth', socialAuth);
 userRouter.post('/update-profile', isAuthenticated, updateUserInfo);
 userRouter.put('/update-password', isAuthenticated, updateUserPassword);
+userRouter.put('/update-avatar', isAuthenticated, updateUserProfilePic);
 
 export default userRouter;

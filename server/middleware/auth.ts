@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import cloudinary from 'cloudinary';
 import { catchAsyncError } from './catchAsyncError';
 import ErrorHandler from '../utils/ErrorHandler';
 import jwt, { JwtPayload } from 'jsonwebtoken';
@@ -199,6 +200,59 @@ export const updateUserPassword = catchAsyncError(
       await redis.set(request.user?._id, JSON.stringify(user)); // update the user to redis
 
       response.status(201).json({
+        success: true,
+        user,
+      });
+    } catch (error: any) {
+      next(new ErrorHandler(error.message, 400));
+    }
+  }
+);
+
+interface UpdateUserProfilePic {
+  avatar: string;
+}
+
+export const updateUserProfilePic = catchAsyncError(
+  async (request: Request, response: Response, next: NextFunction) => {
+    try {
+      const { avatar } = request.body as UpdateUserProfilePic;
+      const userId = request?.user?._id;
+      const user = await userModel.findById(userId);
+
+      if (avatar && user) {
+        // for social-auth, dont have the public_id in that case we just have to upload the image to cloudinary
+        if (user?.avatar.public_id) {
+          // delete old avatar
+          await cloudinary.v2.uploader.destroy(user.avatar.public_id);
+
+          // upload new avatar
+          const myUploadedAvatar = await cloudinary.v2.uploader.upload(avatar, {
+            folder: 'avatars',
+            width: 150,
+          });
+
+          user.avatar = {
+            public_id: myUploadedAvatar.public_id,
+            url: myUploadedAvatar.secure_url,
+          };
+        } else {
+          const myUploadedAvatar = await cloudinary.v2.uploader.upload(avatar, {
+            folder: 'avatars',
+            width: 150,
+          });
+
+          user.avatar = {
+            public_id: myUploadedAvatar.public_id,
+            url: myUploadedAvatar.secure_url,
+          };
+        }
+      }
+
+      await user?.save();
+      await redis.set(userId, JSON.stringify(user));
+
+      response.status(200).json({
         success: true,
         user,
       });
